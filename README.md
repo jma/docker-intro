@@ -162,8 +162,99 @@ et en exécutant:
 	
 Ok mais comment voir le site web dans un navigateur? Simplement en récupérant l'adresse IP du host `docker-machine ip`.
 
+## Une application web plus avancée
 
+Nous avons vu comment faire une application web python dans un docker. Mais le serveur utilisé est fait uniquement pour le développement. Nous allons maintenant servir notre application avec `gunicorn`, exécuter le serveur avec un utilisateur dédié et créer un espace de stockage permanent pour les logs.
+
+### Etape 1: un nouveau web serveur exécuter avec un utilisateur non root
+
+Voici le nouveau __Dockerfile__:
+
+	FROM python:2.7-slim
+
+	# information sur le créateur
+	MAINTAINER Johnny Mariéthoz <chezjohnny@gmail.com>
+
+	# installation des paquets Debian nécessaire à gunicorn
+	RUN apt-get update -y && apt-get install -y gcc
+
+	# les variables d'environnement pour l'utilisateur
+	ENV USER myuser
+	ENV HOME /home/myuser
+
+	# ajustement des paths pour pip --user
+	ENV PATH /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:${HOME}/.local/bin
+
+	# création de l'utilisateur
+	RUN useradd --home-dir $HOME --create-home --shell /bin/bash --uid 1000 $USER
 	
+	# création du répertoire de travail
+	RUN mkdir $HOME/www
+
+	# changement du répertoire de travail
+	WORKDIR ${HOME}/www
+
+	# copier le fichier d'application
+	COPY myapp.py  $HOME/www/
+
+	# ajustement des permissions
+	RUN chown $USER:$USER -R ${HOME}
+
+	# changement d'utilisateur
+	USER $USER
+
+	# intallation des modules python
+	RUN pip install --user gunicorn eventlet Flask
+
+	# commande par defaut: exécuter le serveur web
+	CMD gunicorn --log-file=- --bind 0.0.0.0:5000   -w 3 --worker-connections=2000 --backlog=1000  -k eventlet myapp:app
+
+On essaie:
+
+	docker build -t web web
+	docker rm web; docker run --name web -ti -p 80:5000 web
+
+et on bien notre "Hello World" dans notre navigateur.
+
+### Etape 2: garder les logs
+
+Un container perds toutes les données lorsqu'il s'arrête. Pour résoudre cela il faut utiliser un container spécial: un __data volume__. On peut créer un volume dans tous les containers, mais le mieux est d'en avoir un dédié.
+
+Ici le serveur est exécuter sous un utilisateur dédié et donc il n'aura pas les droits d'écriture sur le volume. Nous devons donc avoir une image particulière voici un __data/Dockerfile__ spécifique:
+	
+	# n'importe quelle image fait l'affaire, mais de préférence une qui est déjà en cache
+	FROM python:2.7-slim
+
+	ENV USER myuser
+	# création de l'utilisateur avec un uid réutilisé dans les autres containers
+	RUN useradd --shell /bin/bash --uid 1000 $USER
+
+	# création du répertoire
+	RUN mkdir -p /data && chown $USER:$USER -R /data
+
+	# définition du volume
+	VOLUME ["/data"]
+
+La création du volume se fait comme ceci:
+	
+	docker build -t myapp_data data
+	docker create --name myapp_data myapp_data
+
+Il suffit de l'utiliser lors de l'exécution de notre web app:
+
+	docker run --volumes-from=myapp_data --name web -ti -p 80:5000 web gunicorn --log-file=/data/myapp.log --bind 0.0.0.0:5000   -w 3 --worker-connections=2000 --backlog=1000  -k eventlet myapp:app
+
+Nous avons surchargé ici la commande exécutée pour donner le path du fichier de log.
+
+Comment contrôler que le fichier de log existe vraiment? Le volume est un espace de stockage sur le __host docker__, on peut le localiser comme ceci:
+
+	docker inspect myapp_data|grep data
+
+on quelque chose comme `/mnt/sda1/var/lib/docker/volumes/6f000628ca42c5e1eed77feee091c2af3def6e253b1612082b6274cb66384cc8/_data`. Il suffit de se connecter sur le host via ssh `docker-machine ssh dev` et de vérifier dans le path indiqué.
+
+Il est a noter que les données persistent même si l'image et le container __myapp_data__ sont supprimés.
+
+
 ## Références
 
 - Site principal docker: <https://www.docker.com/>
