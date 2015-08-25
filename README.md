@@ -148,6 +148,21 @@ Pour exécuter le container que nous nommerons __web__ également:
 
 Le serveur tourne bien dans le container `docker ps`. Pour le stopper `docker stop web`.
 
+Bien, nous avons donc notre premier container avec une application web, mais comment le voir dans un navigateur? Tout d'abord il faut savoir que les containers sont isolés du host. Donc le port n'est pas visible depuis le host. On peut y remédier avec une option lors de l'exécution du container:
+
+	docker rm web; docker run -ti -p 80:5000 web --name web
+
+On peut vérifier que tout fonctionne en se connectant sur le __host docker__ avec:
+	
+	docker-machine ssh dev
+	
+et en exécutant:
+	
+	wget http://localhost:80
+	
+Ok mais comment voir le site web dans un navigateur? Simplement en récupérant l'adresse IP du host `docker-machine ip`.
+
+
 	
 ## Références
 
