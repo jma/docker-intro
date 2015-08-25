@@ -14,11 +14,11 @@ apt-get install docker.io
 
 ### MacOSX
 
-Comme docker a besoin d'une installation linux, windows ou Macosx utilise VirtualBox comme host principal. C'est le rôle de boot2docker de gérer la machine virtuelle linux. Elle est donc créée avec cet outil
+Comme docker a besoin d'une installation linux, windows ou Macosx utilise VirtualBox comme host principal. C'est le rôle de `docker-machine` de gérer la machine virtuelle linux. Elle est donc créée avec cet outil.
+
 #### Avec Home Brew
 
 	brew install docker-machine docker docker-compose
-
 
 #### Avec un paquet officiel
 
@@ -51,35 +51,30 @@ Comme les données d'un container ne sont pas persistantes, il existe la possibi
 ### Environnement
 La commande `docker-machine` permet de gérer un set de __host docker__.
 
-Créer une nouvel __host docker__:
+On peut créer un nouvel __host docker__ avec:
 
-```
-docker-machine create dev
-```
-Le host est prêt pour exécuter des containers, mais il faut mettre à jours les variables d'enivronnement:
+	docker-machine create -d virtualbox dev
+	
+Le host est prêt pour exécuter des containers, mais il faut mettre à jours les variables d'environnement:
 
-```
-eval "$(docker-machine env dev)"
-```
+	eval "$(docker-machine env dev)"
+
 Note: il est possible de le mettre dans les fichiers d'init de bash (.profile, .bashr, etc.).
 
 ### Mon premier container
 
 Cette commande permet de récupérer une image du __docker hub__ et de l'exécuter en tant que container.
 
-Notez que le container d'arrête quand la commande se termine. La deuxième exécution sera plus rapide car l'image __hello world__ sera stockée localement.
+Notez que le container d'arrête quand la commande se termine. Une deuxième exécution sera plus rapide car l'image __hello world__ sera stockée localement.
 
-```
-docker run hello-world
-```
+
+	docker run hello-world
 
 Pour voir la liste des images disponibles localement:
 
-```
-docker images
-REPOSITORY          TAG                 IMAGE ID            CREATED             VIRTUAL SIZE
-hello-world         latest              af340544ed62        2 weeks ago         960 B
-```
+	docker images
+	REPOSITORY          TAG                 IMAGE ID            CREATED             	VIRTUAL SIZE
+	hello-world         latest              af340544ed62        2 weeks ago         	960 B
 
 La commande listant les containers:
 
@@ -126,31 +121,34 @@ Les étapes consistent à:
 3) copier le fichier dans le container
 4) exécuter le script `python myapp/myapp.py`
 
-Voici le __Dockerfile__ correspondant que nous mettrons dans le répertoire web:
+Voici le __myapp/Dockerfile__ correspondant que nous mettrons dans le répertoire web:
 
-	From python:2.7-slim     # step 1
+	# step 1
+	FROM python:2.7-slim
 
-	RUN pip install Flask    # step 2
-
+	# step 2
+	RUN pip install Flask
 	RUN mkdir /web
 
-	COPY myapp.py /web/      # step 3
+	# step 3
+	COPY myapp.py /web/
 
-	CMD python /web/myapp.py # step 4
+	#step 4
+	CMD python /web/myapp.py
 
-Nous pouvons alors construire notre image que nous nommerons __web__.
+Nous pouvons alors construire notre image que nous nommerons __myapp__.
 
-	docker build -t web web
+	docker build -t myapp myapp
 	
-Pour exécuter le container que nous nommerons __web__ également:
+Pour exécuter le container que nous nommerons __myapp__ également:
 
-	docker run --name web web
+	docker run --name myapp myapp
 
-Le serveur tourne bien dans le container `docker ps`. Pour le stopper `docker stop web`.
+Le serveur tourne bien dans le container `docker ps`. Pour le stopper `docker stop myapp`.
 
-Bien, nous avons donc notre premier container avec une application web, mais comment le voir dans un navigateur? Tout d'abord il faut savoir que les containers sont isolés du host. Donc le port n'est pas visible depuis le host. On peut y remédier avec une option lors de l'exécution du container:
+Bien, nous avons donc notre premier container avec une application web, mais comment le voir dans un navigateur? Tout d'abord il faut savoir que les containers sont isolés du host. Donc le port n'est pas visible depuis celui-ci. On peut y remédier avec une option lors de l'exécution du container:
 
-	docker rm web; docker run -ti -p 80:5000 web --name web
+	docker rm myapp; docker run -ti -p 80:5000 --name myapp myapp
 
 On peut vérifier que tout fonctionne en se connectant sur le __host docker__ avec:
 	
@@ -164,11 +162,11 @@ Ok mais comment voir le site web dans un navigateur? Simplement en récupérant 
 
 ## Une application web plus avancée
 
-Nous avons vu comment faire une application web python dans un docker. Mais le serveur utilisé est fait uniquement pour le développement. Nous allons maintenant servir notre application avec `gunicorn`, exécuter le serveur avec un utilisateur dédié et créer un espace de stockage permanent pour les logs.
+Nous avons vu comment faire une application web python dans un docker. Mais le serveur utilisé est fait uniquement pour le développement. Nous allons maintenant servir notre application avec `gunicorn`, exécuter le serveur avec un utilisateur dédié et créer un espace de stockage permanent pour les logs. Cette nouvelle image sera appelée __web__.
 
 ### Etape 1: un nouveau web serveur exécuter avec un utilisateur non root
 
-Voici le nouveau __Dockerfile__:
+Voici le nouveau __web/Dockerfile__:
 
 	FROM python:2.7-slim
 
@@ -220,7 +218,7 @@ et on bien notre "Hello World" dans notre navigateur.
 
 Un container perds toutes les données lorsqu'il s'arrête. Pour résoudre cela il faut utiliser un container spécial: un __data volume__. On peut créer un volume dans tous les containers, mais le mieux est d'en avoir un dédié.
 
-Ici le serveur est exécuter sous un utilisateur dédié et donc il n'aura pas les droits d'écriture sur le volume. Nous devons donc avoir une image particulière voici un __data/Dockerfile__ spécifique:
+Ici le serveur est exécuté sous un utilisateur dédié et donc il n'aura pas les droits d'écriture sur le volume. Nous devons donc avoir une image particulière définie par le __data/Dockerfile__ suivant:
 	
 	# n'importe quelle image fait l'affaire, mais de préférence une qui est déjà en cache
 	FROM python:2.7-slim
@@ -229,7 +227,7 @@ Ici le serveur est exécuter sous un utilisateur dédié et donc il n'aura pas l
 	# création de l'utilisateur avec un uid réutilisé dans les autres containers
 	RUN useradd --shell /bin/bash --uid 1000 $USER
 
-	# création du répertoire
+	# création et ajustement des droits du répertoire
 	RUN mkdir -p /data && chown $USER:$USER -R /data
 
 	# définition du volume
@@ -250,15 +248,15 @@ Comment contrôler que le fichier de log existe vraiment? Le volume est un espac
 
 	docker inspect myapp_data|grep data
 
-on quelque chose comme `/mnt/sda1/var/lib/docker/volumes/6f000628ca42c5e1eed77feee091c2af3def6e253b1612082b6274cb66384cc8/_data`. Il suffit de se connecter sur le host via ssh `docker-machine ssh dev` et de vérifier dans le path indiqué.
+on quelque chose comme `/mnt/sda1/var/lib/docker/volumes/6f000628ca42c5e1eed77feee091c2af3def6e253b1612082b6274cb66384cc8/_data`. Il suffit de se connecter sur le host via ssh `docker-machine ssh dev` et de vérifier que le fichier de log existe dans le répertoire indiqué.
 
-Il est a noter que les données persistent même si l'image et le container __myapp_data__ sont supprimés.
+Il est à noter que les données persistent même si l'image et le container __myapp_data__ sont supprimés.
 
 ## Gestion des containers multiples
 
-Nous avons vu comment créer des containers simples et les faire interagir, mais cela demande passablement de commande. Pour simplifier cette gestion il existe un outils `docker-compose`.
+Nous avons vu comment créer des containers simples et les faire interagir, mais cela demande passablement de commandes. Pour simplifier cette gestion il existe un outils `docker-compose`.
 
-Imaginons que nous avons deux fichiers `web/Dockerfile` et `data/Dockerfile` comme définis précédemment. Un pour l'application web et un pour le volume de données. Imaginons que nous voulons un "load balancer" devant plusieurs instance de note appli web. Nous allons créer un nouveau __Dockerfile__ pour le load balancer basé sur ngix. Le tout va logger dans le même répertoire.
+Imaginons que nous avons deux fichiers `web/Dockerfile` et `data/Dockerfile` comme définis précédemment. Un pour l'application web et un pour le volume de données. Imaginons que nous voulons un "load balancer" devant plusieurs instance de note appli web. Nous allons créer un nouveau __Dockerfile__ pour le __load balancer__ basé sur ngix. Le tout va logger dans le même répertoire.
 
 Voici le fichier __balancer/Dockerfile__ pour nginx:
 
@@ -307,7 +305,7 @@ Dans le fichier __balancer/nginx.conf__ on va spécifier le fichier de log:
     	include /etc/nginx/conf.d/*.conf;
 	}
 
-La configuration du "load balancer" se fait comme ceci:
+La configuration du __load balancer__ se fait comme ceci:
 	upstream web {
 		server web_1:8000;
 		server web_2:8000;
@@ -329,9 +327,10 @@ La configuration du "load balancer" se fait comme ceci:
         }
 	}
 
-Nous pouvons voir que nous allons avoir deux containers de l'image web: web_1 et web_2, mais comment nginx peut connaître les containers web? Grâce à l'option link.
+Nous pouvons voir que nous allons avoir deux containers de l'image web: web_1 et web_2, mais comment nginx peut connaître les containers web? Grâce à l'option __link__.
 
-Voici le fichier__docker-compose.yml__
+Voici le fichier__docker-compose.yml__:
+
 	# web server
 	web:
    		# répertoire pour construire l'image
@@ -364,6 +363,16 @@ Voici le fichier__docker-compose.yml__
   	image: myapp_data
   	volumes:
    		- "/data"
+   		
+Maintenant il reste à construire les images:
+
+	docker-compose build
+
+et exécuter le service
+
+	docker-compose up
+
+Le site web est dispo et est bien balancé.
 
 
 ## Références
