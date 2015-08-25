@@ -254,6 +254,117 @@ on quelque chose comme `/mnt/sda1/var/lib/docker/volumes/6f000628ca42c5e1eed77fe
 
 Il est a noter que les données persistent même si l'image et le container __myapp_data__ sont supprimés.
 
+## Gestion des containers multiples
+
+Nous avons vu comment créer des containers simples et les faire interagir, mais cela demande passablement de commande. Pour simplifier cette gestion il existe un outils `docker-compose`.
+
+Imaginons que nous avons deux fichiers `web/Dockerfile` et `data/Dockerfile` comme définis précédemment. Un pour l'application web et un pour le volume de données. Imaginons que nous voulons un "load balancer" devant plusieurs instance de note appli web. Nous allons créer un nouveau __Dockerfile__ pour le load balancer basé sur ngix. Le tout va logger dans le même répertoire.
+
+Voici le fichier __balancer/Dockerfile__ pour nginx:
+
+	# une image existe déjà pour nginx
+	FROM nginx
+
+	# copie des config
+	COPY nginx.conf /etc/nginx/nginx.conf
+	COPY myapp_nginx.conf /etc/nginx/conf.d/000-johntone.conf
+
+	# suppression de la conf par défaut
+	RUN rm /etc/nginx/conf.d/default.conf
+
+Dans le fichier __balancer/nginx.conf__ on va spécifier le fichier de log:
+
+	user  nginx;
+	worker_processes  1;
+
+	# modification
+	error_log  /data/nginx_error.log warn;
+	pid        /var/run/nginx.pid;
+
+
+	events {
+   		worker_connections  1024;
+	}
+
+
+	http {
+   		include       /etc/nginx/mime.types;
+    	default_type  application/octet-stream;
+
+    	log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                      '$status $body_bytes_sent "$http_referer" '
+                      '"$http_user_agent" "$http_x_forwarded_for"';
+		# modification
+    	access_log  /data/nginx_access.log  main;
+
+    	sendfile        on;
+    	#tcp_nopush     on;
+
+    	keepalive_timeout  65;
+
+    	#gzip  on;
+
+    	include /etc/nginx/conf.d/*.conf;
+	}
+
+La configuration du "load balancer" se fait comme ceci:
+	upstream web {
+		server web_1:8000;
+		server web_2:8000;
+	}
+	server {
+        listen 80;
+        server_name "localhost";
+
+        access_log /data/nginx_myapp.net_access.log combined;
+        error_log  /data/nginx_myapp.net_error.log;
+
+        location /myapp {
+                proxy_pass http://web;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header Host $http_host;
+                proxy_set_header X-Scheme $scheme;
+                proxy_set_header SCRIPT_NAME /myapp;
+        }
+	}
+
+Nous pouvons voir que nous allons avoir deux containers de l'image web: web_1 et web_2, mais comment nginx peut connaître les containers web? Grâce à l'option link.
+
+Voici le fichier__docker-compose.yml__
+	# web server
+	web:
+   		# répertoire pour construire l'image
+   		build: web
+   		# données persistantes pour les logs
+    	volumes_from:
+       	- myapp_data
+    	# port exposé pour les autres containers
+    	expose:
+       	- "5000"
+    	# surcharge de la commande pour spécifier les logs
+    	command: gunicorn --log-file=/data/myapp.log --bind 0.0.0.0:5000   -w 3 --worker-connections=2000 --backlog=1000  -k eventlet myapp:app
+
+	# load balancer
+	balancer:
+   		build: balancer
+    	# le port 80 du container est redirigé sur le port 80 du host docker
+    	ports:
+       	- "80:80"
+    	# utilise le(s) cotainer(s) web
+    	links:
+       	- web
+    	# données persistantes pour les logs
+    	volumes_from:
+       	- myapp_data
+
+	# données persistantes pour les logs
+	myapp_data:
+  	# utilisation d'une image existante contenant l'historique des logs
+  	image: myapp_data
+  	volumes:
+   		- "/data"
+
 
 ## Références
 
