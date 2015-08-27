@@ -1,0 +1,24 @@
+# web server
+web:
+    # répertoire pour construire l'image
+    build: web
+    volumes:
+        - "/Users/marietho/Devel/rero/src/docker-intro/prod_poc/dev/logs:/data"
+    # port exposé pour les autres containers
+    expose:
+        - "5000"
+    # surcharge de la commande pour spécifier les logs
+    command: gunicorn --log-file=/data/myapp.log --bind 0.0.0.0:5000   -w 3 --worker-connections=2000 --backlog=1000  -k eventlet myapp:app
+
+# load balancer
+balancer:
+    build: balancer
+    # le port 80 du container est redirigé sur le port 80 du host docker
+    ports:
+        - "80:80"
+    # utilise le(s) cotainer(s) web
+    links:
+        - web
+    # données persistantes pour les logs
+    volumes:
+        - "/Users/marietho/Devel/rero/src/docker-intro/prod_poc/dev/logs:/data"

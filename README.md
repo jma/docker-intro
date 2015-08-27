@@ -374,6 +374,100 @@ et exécuter le service
 
 Le site web est dispo et est bien balancé.
 
+## Docker en production (Proof of concept)
+
+Voici un workflow à tester avec docker:
+
+![alt text](img/docker_in_prod.png "Title")
+
+Nous allons créer différents host docker:
+- un pour le développement. __devel__
+- une registry privée: __registry__
+- un pour le load balancer: __balencer__
+- deux pour notre application web: __web1__ __web2__
+
+### Notes
+
+#### Partage de fichiers
+Nous allons simuler le système de fichier partagés avec une particularité de __docker-machine__ sous MacOSX. Le dossier __/Users__ est monté directement dans le host virtualbox lors de la création de celle-ci. Nous allons donc monter directement un sous-répertoire de __/Users__ dans les containers pour les __logs__ et pour le fichier de config __nginx__ (voir les fichiers __docker-compose.yml__ correspondants).
+
+#### Une image au lieu d'un build
+Sur la production nous ne voulons pas construire l'image mais utilise une image déjà disponible, dans ce cas la directive __build__ du fichier __docker-compose.yml__ est remplacé par __image__ (voir les fichiers __docker-compose.yml__ dans __prod_poc/web__ et __prod_poc/balancer__).
+
+Chaque host correspond à une machine virtuelle. Voici la création des ces machines avec `docker-machine`:
+
+	docker-machine create -d virtualbox registry
+	docker-machine create -d virtualbox --engine-insecure-registry=192.168.99.109:5000 dev
+	docker-machine create -d virtualbox --engine-insecure-registry=192.168.99.109:5000 balancer
+	docker-machine create -d virtualbox --engine-insecure-registry=192.168.99.109:5000 web1
+	docker-machine create -d virtualbox --engine-insecure-registry=192.168.99.109:5000 web2
+
+On va démarrer le container de registry:
+
+	eval "$(docker-machine env registry)"
+	docker run -d -p 5000:5000 --name registry registry:2
+
+Le code se trouve dans le répertoire __prod_poc__:
+
+	cd prod_poc
+
+On test l'application en développement avec deux instances de __web__:
+
+	eval "$(docker-machine env dev)"
+	docker-compose scale web=2
+	docker-compose build
+	docke-compose up
+
+L'application est disponible dans le navigateur à l'adresse `docker-machine ip dev`.
+
+L'idée est d'utiliser la __registry__ comme un équivalent de notre __gitlab__ local.
+
+On a besoin de __tagger__ nos images avec l'adresse de la __registry__:
+
+	docker tag prodpoc_balancer 192.168.99.109:5000/balancer
+	docker tag prodpoc_web 192.168.99.109:5000/web
+
+Il reste à les pousser dans la __registry__:
+
+	docker push 192.168.99.109:5000/balancer
+	docker push 192.168.99.109:5000/web
+	
+Les images sont prêtes pour la prod! On récupère les images sur les machines de production:
+
+	eval "$(docker-machine env web1)"
+	docker pull 192.168.99.109:5000/web
+	eval "$(docker-machine env web2)"
+	docker pull 192.168.99.109:5000/web
+	eval "$(docker-machine env balancer)"
+	docker pull 192.168.99.109:5000/balancer
+
+Les images sont disponibles dans les machines de production, cool.
+
+Il faut maintenant démarrer les services __web__:
+
+	cd web
+	eval "$(docker-machine env web1)"
+	docker-compose up -d
+	
+	eval "$(docker-machine env web2)"
+	docker-compose up -d
+
+Sur chaque machine le serveur répond sur `docker-machine ip web1` et `docker-machine ip web2`.
+
+On récupère les adresses ip de __web1__ et __web2__ et on les mets dans le fichier de config __prod_poc/balancer/conf.d/myapp_nginx.conf__.
+
+On peut maintenant démarrer le lancer:
+
+	cd balancer 
+	eval "$(docker-machine env web2)"
+	docker-compose up -d
+
+Il est possible de modifier le fichier de configuration de __nginx__: __prod_poc/balancer/conf.d/myapp_nginx.conf__ et de forcer son chargement par le container:
+
+	eval "$(docker-machine env blancer)"
+	docker kill -s HUP balancer_balancer_1 
+
+
 
 ## Références
 

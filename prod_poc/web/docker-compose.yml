@@ -1,0 +1,11 @@
+# web server
+web:
+    # répertoire pour construire l'image
+    image: 192.168.99.109:5000/web
+    volumes:
+        - "/Users/marietho/Devel/rero/src/docker-intro/prod_poc/prod/logs:/data"
+    # port exposé pour les autres containers
+    ports:
+        - "80:5000"
+    # surcharge de la commande pour spécifier les logs
+    command: gunicorn --log-file=/data/myapp.log --bind 0.0.0.0:5000   -w 3 --worker-connections=2000 --backlog=1000  -k eventlet myapp:app

@@ -1,0 +1,11 @@
+# load balancer
+balancer:
+    image: 192.168.99.109:5000/balancer
+    # le port 80 du container est redirigé sur le port 80 du host docker
+    ports:
+        - "80:80"
+    # données persistantes pour les logs
+    volumes:
+        - "/Users/marietho/Devel/rero/src/docker-intro/prod_poc/prod/logs:/data"
+        - "/Users/marietho/Devel/rero/src/docker-intro/prod_poc/balancer/conf.d:/etc/nginx/conf.d"
+
