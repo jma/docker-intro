@@ -1,7 +1,7 @@
 # web server
 web:
     # répertoire pour construire l'image
-    image: 192.168.99.109:5000/web
+    image: web
     volumes:
         - "/Users/marietho/Devel/rero/src/docker-intro/prod_poc/prod/logs:/data"
     # port exposé pour les autres containers

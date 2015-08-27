@@ -1,6 +1,6 @@
 # load balancer
 balancer:
-    image: 192.168.99.109:5000/balancer
+    image: balancer
     # le port 80 du container est redirigé sur le port 80 du host docker
     ports:
         - "80:80"

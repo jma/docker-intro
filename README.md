@@ -12,9 +12,11 @@ Pour cette distribution une "Jessie" est la manière la plus directe d'installer
 apt-get install docker.io
 ```
 
+Note: il semble que les paquets ont disparus dans la version 8.1.
+
 ### MacOSX
 
-Comme docker a besoin d'une installation linux, windows ou Macosx utilise VirtualBox comme host principal. C'est le rôle de `docker-machine` de gérer la machine virtuelle linux. Elle est donc créée avec cet outil.
+Comme docker a besoin d'une installation Linux, docker sous Windows ou Macosx utilise VirtualBox comme __host__ principal. C'est le rôle de `docker-machine` de gérer la machine virtuelle linux. Elle est donc créée avec cet outil.
 
 #### Avec Home Brew
 
@@ -28,10 +30,10 @@ Il faut suivre les indications depuis le site principal <http://docs.docker.com/
 ## Concepts
 
 ### Host
-Un host docker et une machine Linux (Virtuelle ou non) qui peut exécuter des containers docker.
+Un host docker et une machine Linux (Virtuelle ou non) qui peut exécuter des __containers__ docker.
 
 ### Images
-Une image docker est la base d'un container. Elle est passive dans le sens qu'elle n'est pas exécutée. On peut récupérer une image existante sur le site docker hub <https://hub.docker.com/> avec la commande:
+Une __image__ docker est la base d'un container. Elle est passive dans le sens qu'elle n'est pas exécutée. On peut récupérer une image existante sur le site docker hub <https://hub.docker.com/> avec la commande:
 
 	docker pull <image_name>
 	
@@ -40,10 +42,12 @@ Il est possible de créer ses propres images en écrivant un fichier __Dockerfil
 ### Container
 C'est l'exécution d'une image. Il est exécuté dans l'équivalent d'un processus LXC (Linux Container). En général un et un seul processus tourne dans le container.
 
-Toutes les données sont supprimées lors de l'arrêt d'un container.
+Toutes les données sont supprimées lors de l'arrêt d'un container; les données ne sont pas persistantes.
 
 ### Data volume
-Comme les données d'un container ne sont pas persistantes, il existe la possibilité de créer des volumes de données qui peuvent être montée dans les containers. Les données sont stockées dans un répertoire du __docker host__.
+Comme les données d'un container ne sont pas persistantes, il existe la possibilité de créer des volumes de données qui peuvent être montés dans les containers. Les données sont stockées dans un répertoire du __docker host__.
+
+Une méthode alternative consiste à monter un répertoire du __host__ comme __volume__ d'un __container__.
 
 
 ## En pratique
@@ -59,16 +63,18 @@ Le host est prêt pour exécuter des containers, mais il faut mettre à jours le
 
 	eval "$(docker-machine env dev)"
 
-Note: il est possible de le mettre dans les fichiers d'init de bash (.profile, .bashr, etc.).
+Note: il est possible de le mettre dans les fichiers d'init de bash (.profile, .bashr, etc.) si on développe avec la même machine.
 
 ### Mon premier container
 
 Cette commande permet de récupérer une image du __docker hub__ et de l'exécuter en tant que container.
 
-Notez que le container d'arrête quand la commande se termine. Une deuxième exécution sera plus rapide car l'image __hello world__ sera stockée localement.
-
-
 	docker run hello-world
+
+
+Notez que le container s'arrête quand la commande se termine. Une deuxième exécution sera plus rapide car l'image __hello world__ sera stockée localement.
+
+
 
 Pour voir la liste des images disponibles localement:
 
@@ -95,11 +101,15 @@ Il est intéressant de voir que seul le process bash tourne en exécutant `ps`.
 
 Dans un autre terminal on peut voir le container en cours d'exécution avec `docker ps`.
 
+### Les images dans le HUB
+
+On peut chercher les images disponibles avec `docker search python` par exemple. Les images officielles ne sont pas préfixées, par exemple pour python on a __python__, __google/python__, la première est officielle: vérifiée par le team docker, la deuxième, non. Il est possible spécifier une version en faisant suivre un ":" au nom de l'image, par ex. __python:2.7__. Il est recommander d'utiliser toujours la version pour s'assure qu'on travaille toujours avec la même version de l'image à travers le temps. Pour trouver les versions il faut passer par le __Docker HUB__ <https://hub.docker.com> (demande un compte).
+
 ## Créer sa première image avec un Dockerfile
 
 Il est intéressant d'utiliser les images existantes, mais encore plus de les personnaliser.
 
-Imaginons une application web très simple en python-flask constant en un fichier __myapp/myapp.py__:
+Imaginons une application web très simple en __python-flask__ consistant en un fichier __myapp/myapp.py__:
 
 	from flask import Flask
 	app = Flask(__name__)
@@ -111,9 +121,9 @@ Imaginons une application web très simple en python-flask constant en un fichie
 	if __name__ == '__main__':
 		app.run()
 
-Si le module Flask est installé avec `pip install Flask` et que l'on exécute le script `python myapp/myapp.py` la page peut être consultée avec un navigateur.
+Si le module Flask est installé avec `pip install Flask` et que l'on exécute le script `python myapp/myapp.py` la page web peut être consultée avec un navigateur.
 
-Imaginons que je veux faire tourner cette application dans un container docker. Il me faut d'abord choisir une image de base dans ce cas une image python en version 2.7 par exemple: __python:2.7-slim__.
+Imaginons que je veux faire tourner cette application dans un container docker. Il faut d'abord choisir une image de base; dans ce cas une image python en version 2.7 par exemple: __python:2.7-slim__.
 
 Les étapes consistent à:
 1) avoir une image avec python 2.7
@@ -144,11 +154,12 @@ Pour exécuter le container que nous nommerons __myapp__ également:
 
 	docker run --name myapp myapp
 
-Le serveur tourne bien dans le container `docker ps`. Pour le stopper `docker stop myapp`.
+Le serveur tourne bien dans le container on peut le vérifier avec `docker ps`. Pour le stopper `docker stop myapp`.
 
-Bien, nous avons donc notre premier container avec une application web, mais comment le voir dans un navigateur? Tout d'abord il faut savoir que les containers sont isolés du host. Donc le port n'est pas visible depuis celui-ci. On peut y remédier avec une option lors de l'exécution du container:
+Bien, nous avons donc notre premier container avec une application web, mais comment le voir dans un navigateur? Tout d'abord il faut savoir que les containers sont isolés du __host__. Donc le port n'est pas visible depuis celui-ci. On peut y remédier avec une option lors de l'exécution du container:
 
-	docker rm myapp; docker run -ti -p 80:5000 --name myapp myapp
+	docker rm myapp
+	docker run -ti -p 80:5000 --name myapp myapp
 
 On peut vérifier que tout fonctionne en se connectant sur le __host docker__ avec:
 	
@@ -162,11 +173,11 @@ Ok mais comment voir le site web dans un navigateur? Simplement en récupérant 
 
 ## Une application web plus avancée
 
-Nous avons vu comment faire une application web python dans un docker. Mais le serveur utilisé est fait uniquement pour le développement. Nous allons maintenant servir notre application avec `gunicorn`, exécuter le serveur avec un utilisateur dédié et créer un espace de stockage permanent pour les logs. Cette nouvelle image sera appelée __web__.
+Nous avons vu comment faire une application web python dans un docker. Mais le serveur utilisé est fait uniquement pour le développement. Nous allons maintenant servir notre application avec un serveur web écrit en __python__: `gunicorn`. Le serveur sera exécuté avec un utilisateur dédié et nous allons créer un espace de stockage permanent pour les logs. Cette nouvelle image sera appelée __web__.
 
 ### Etape 1: un nouveau web serveur exécuter avec un utilisateur non root
 
-Voici le nouveau __web/Dockerfile__:
+Voici le nouveau fichier __web/Dockerfile__:
 
 	FROM python:2.7-slim
 
@@ -204,7 +215,7 @@ Voici le nouveau __web/Dockerfile__:
 	# intallation des modules python
 	RUN pip install --user gunicorn eventlet Flask
 
-	# commande par defaut: exécuter le serveur web
+	# commande par defaut: exécution du serveur web
 	CMD gunicorn --log-file=- --bind 0.0.0.0:5000   -w 3 --worker-connections=2000 --backlog=1000  -k eventlet myapp:app
 
 On essaie:
@@ -212,11 +223,11 @@ On essaie:
 	docker build -t web web
 	docker rm web; docker run --name web -ti -p 80:5000 web
 
-et on bien notre "Hello World" dans notre navigateur.
+et on a bien notre "Hello" dans notre navigateur.
 
 ### Etape 2: garder les logs
 
-Un container perds toutes les données lorsqu'il s'arrête. Pour résoudre cela il faut utiliser un container spécial: un __data volume__. On peut créer un volume dans tous les containers, mais le mieux est d'en avoir un dédié.
+Un container perd toutes les données lorsqu'il s'arrête. Pour résoudre cela il faut utiliser un container spécial: un __data volume__. On peut créer un volume dans tous les containers, mais le mieux est d'en avoir un dédié.
 
 Ici le serveur est exécuté sous un utilisateur dédié et donc il n'aura pas les droits d'écriture sur le volume. Nous devons donc avoir une image particulière définie par le __data/Dockerfile__ suivant:
 	
@@ -242,7 +253,7 @@ Il suffit de l'utiliser lors de l'exécution de notre web app:
 
 	docker run --volumes-from=myapp_data --name web -ti -p 80:5000 web gunicorn --log-file=/data/myapp.log --bind 0.0.0.0:5000   -w 3 --worker-connections=2000 --backlog=1000  -k eventlet myapp:app
 
-Nous avons surchargé ici la commande exécutée pour donner le path du fichier de log.
+Nous avons surchargé ici la commande exécutée pour donner le chemin du fichier de log.
 
 Comment contrôler que le fichier de log existe vraiment? Le volume est un espace de stockage sur le __host docker__, on peut le localiser comme ceci:
 
@@ -250,11 +261,11 @@ Comment contrôler que le fichier de log existe vraiment? Le volume est un espac
 
 on quelque chose comme `/mnt/sda1/var/lib/docker/volumes/6f000628ca42c5e1eed77feee091c2af3def6e253b1612082b6274cb66384cc8/_data`. Il suffit de se connecter sur le host via ssh `docker-machine ssh dev` et de vérifier que le fichier de log existe dans le répertoire indiqué.
 
-Il est à noter que les données persistent même si l'image et le container __myapp_data__ sont supprimés.
+Il est à noter que les données persistent même si l'image __et__ le container __myapp_data__ sont supprimés.
 
 ## Gestion des containers multiples
 
-Nous avons vu comment créer des containers simples et les faire interagir, mais cela demande passablement de commandes. Pour simplifier cette gestion il existe un outils `docker-compose`.
+Nous avons vu comment créer des containers simples et les faire interagir, mais cela demande passablement de commandes. Pour simplifier cette gestion il existe un outils: `docker-compose`.
 
 Imaginons que nous avons deux fichiers `web/Dockerfile` et `data/Dockerfile` comme définis précédemment. Un pour l'application web et un pour le volume de données. Imaginons que nous voulons un "load balancer" devant plusieurs instance de note appli web. Nous allons créer un nouveau __Dockerfile__ pour le __load balancer__ basé sur ngix. Le tout va logger dans le même répertoire.
 
@@ -265,7 +276,7 @@ Voici le fichier __balancer/Dockerfile__ pour nginx:
 
 	# copie des config
 	COPY nginx.conf /etc/nginx/nginx.conf
-	COPY myapp_nginx.conf /etc/nginx/conf.d/000-johntone.conf
+	COPY myapp_nginx.conf /etc/nginx/conf.d/myapp.conf
 
 	# suppression de la conf par défaut
 	RUN rm /etc/nginx/conf.d/default.conf
@@ -367,8 +378,12 @@ Voici le fichier__docker-compose.yml__:
 Maintenant il reste à construire les images:
 
 	docker-compose build
+	
+on crée deux instances de _web__:
+	
+	docker-compose scale web=2
 
-et exécuter le service
+et on exécute le service au complet:
 
 	docker-compose up
 
@@ -380,10 +395,10 @@ Voici un workflow à tester avec docker:
 
 ![alt text](img/docker_in_prod.png "Title")
 
-Nous allons créer différents host docker:
+Nous allons créer différents hosts docker:
 - un pour le développement. __devel__
 - une registry privée: __registry__
-- un pour le load balancer: __balencer__
+- un pour le load balancer: __balancer__
 - deux pour notre application web: __web1__ __web2__
 
 ### Notes
@@ -397,10 +412,10 @@ Sur la production nous ne voulons pas construire l'image mais utilise une image 
 Chaque host correspond à une machine virtuelle. Voici la création des ces machines avec `docker-machine`:
 
 	docker-machine create -d virtualbox registry
-	docker-machine create -d virtualbox --engine-insecure-registry=192.168.99.109:5000 dev
-	docker-machine create -d virtualbox --engine-insecure-registry=192.168.99.109:5000 balancer
-	docker-machine create -d virtualbox --engine-insecure-registry=192.168.99.109:5000 web1
-	docker-machine create -d virtualbox --engine-insecure-registry=192.168.99.109:5000 web2
+	docker-machine create -d virtualbox --engine-insecure-registry=`docker-machine ip registry`:5000 dev
+	docker-machine create -d virtualbox --engine-insecure-registry=`docker-machine ip registry`:5000 balancer
+	docker-machine create -d virtualbox --engine-insecure-registry=`docker-machine ip registry`:5000 web1
+	docker-machine create -d virtualbox --engine-insecure-registry=`docker-machine ip registry`:5000 web2
 
 On va démarrer le container de registry:
 
@@ -411,11 +426,11 @@ Le code se trouve dans le répertoire __prod_poc__:
 
 	cd prod_poc
 
-On test l'application en développement avec deux instances de __web__:
+On teste l'application en développement avec deux instances de __web__:
 
 	eval "$(docker-machine env dev)"
-	docker-compose scale web=2
 	docker-compose build
+	docker-compose scale web=2
 	docke-compose up
 
 L'application est disponible dans le navigateur à l'adresse `docker-machine ip dev`.
@@ -424,22 +439,27 @@ L'idée est d'utiliser la __registry__ comme un équivalent de notre __gitlab__ 
 
 On a besoin de __tagger__ nos images avec l'adresse de la __registry__:
 
-	docker tag prodpoc_balancer 192.168.99.109:5000/balancer
-	docker tag prodpoc_web 192.168.99.109:5000/web
+	docker tag prodpoc_balancer `docker-machine ip registry`:5000/balancer
+	docker tag prodpoc_web `docker-machine ip registry`:5000/web
 
 Il reste à les pousser dans la __registry__:
 
-	docker push 192.168.99.109:5000/balancer
-	docker push 192.168.99.109:5000/web
+	docker push `docker-machine ip registry`:5000/balancer
+	docker push `docker-machine ip registry`:5000/web
 	
 Les images sont prêtes pour la prod! On récupère les images sur les machines de production:
 
 	eval "$(docker-machine env web1)"
-	docker pull 192.168.99.109:5000/web
+	docker pull `docker-machine ip registry`:5000/web
+	docker tag `docker-machine ip registry`:5000/web web
+
 	eval "$(docker-machine env web2)"
-	docker pull 192.168.99.109:5000/web
+	docker pull `docker-machine ip registry`:5000/web
+	docker tag `docker-machine ip registry`:5000/web web
+
 	eval "$(docker-machine env balancer)"
-	docker pull 192.168.99.109:5000/balancer
+	docker pull `docker-machine ip registry`:5000/balancer
+	docker tag `docker-machine ip registry`:5000/balancer balancer
 
 Les images sont disponibles dans les machines de production, cool.
 
