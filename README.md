@@ -317,6 +317,7 @@ Dans le fichier __balancer/nginx.conf__ on va spécifier le fichier de log:
 	}
 
 La configuration du __load balancer__ se fait comme ceci:
+
 	upstream web {
 		server web_1:8000;
 		server web_2:8000;
@@ -396,6 +397,7 @@ Voici un workflow à tester avec docker:
 ![alt text](img/docker_in_prod.png "Title")
 
 Nous allons créer différents hosts docker:
+
 - un pour le développement. __devel__
 - une registry privée: __registry__
 - un pour le load balancer: __balancer__
@@ -479,12 +481,12 @@ On récupère les adresses ip de __web1__ et __web2__ et on les mets dans le fic
 On peut maintenant démarrer le lancer:
 
 	cd balancer 
-	eval "$(docker-machine env web2)"
+	eval "$(docker-machine env balancer)"
 	docker-compose up -d
 
 Il est possible de modifier le fichier de configuration de __nginx__: __prod_poc/balancer/conf.d/myapp_nginx.conf__ et de forcer son chargement par le container:
 
-	eval "$(docker-machine env blancer)"
+	eval "$(docker-machine env balancer)"
 	docker kill -s HUP balancer_balancer_1 
 
 
