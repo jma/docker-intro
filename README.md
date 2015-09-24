@@ -490,6 +490,31 @@ Il est possible de modifier le fichier de configuration de __nginx__: __prod_poc
 	docker kill -s HUP balancer_balancer_1 
 
 
+## Misc
+
+### Rajouter une machine debian stock à `docker-machine`
+
+On peut créer une debian minimale dans `VirtualBox` par exemple. J'ai rajouté un utilisateur `rero`. Lors de la création de la machine virtuelle j'ai rajouté un 2ème host réseau avec les options `Host Only` et l'interface `vboxnet1`.
+
+Après le démarrage de la `Debian`, j'ai rajouté l'utilisateur avec les privilèges `sudo` sans mot de passe (temporairement):
+
+    root@debian> echo "jojo ALL=(ALL:ALL) NOPASSWD:ALL" > /etc/sudoers.d/rero
+    root@debian> chmod 0660 /etc/sudoers.d/rero
+
+Il faut maintenant pouvoir se connecter depuis le host sans mot de passe sur la machine `debian`. On rajoute la clé `ssh` dans `/home/rero/.ssh/authorized_keys` (ne pas oublié de réduire les droits de lecture de ce fichier).
+
+Sur le host on peut donc déclarer la machine docker par exemple:
+
+    user@host>docker-machine -D create --generic-ip-address 192.168.99.101 --generic-ssh-user=rero -d generic --generic-ssh-key=$HOME/.ssh/id_rsa debian
+
+Cette commande installe les outils docker sur la machine `debian`. Malgré que cela se termine par une erreur la machie est dispo sous `docker-machine`.
+
+Note: il est possible de supprimer les privilèges sudo de `rero`.
+Note: j'ai fais la même chose sur une machine avec `docker` installé avec:
+
+	curl -sSL https://get.docker.com/ | sh
+
+Cela marche aussi bien que j'ai la même erreur en fin de process. D'après un bug report trouvé sur le web, cette erreur sera résolue avec la version 0.5.
 
 ## Références
 
