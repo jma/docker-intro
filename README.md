@@ -516,6 +516,34 @@ Note: j'ai fais la même chose sur une machine avec `docker` installé avec:
 
 Cela marche aussi bien que j'ai la même erreur en fin de process. D'après un bug report trouvé sur le web, cette erreur sera résolue avec la version 0.5.
 
+### Permettre à une machine distante de lancer des containers
+
+Imaginons une machine __docker client__ de développement ayant les outils
+`docker` installés. Il existe une autre machine dédiée __docker host__ à
+exécuter des containers: une `debian` avec les outils `docker` installés avec:
+
+    curl -sSL https://get.docker.com/ | sh
+
+#### Pour une approche non sécurisée
+
+Editer le fichier `/etc/systemd/system/multi-user.target.wants/docker.service` et changer la ligne correspondante avec:
+
+	ExecStart=/usr/bin/docker daemon -H tcp://0.0.0.0:2375
+
+Il faut relancer le service avec:
+
+	systemctl stop docker
+	systemctl daemon-reload
+	systemctl start docker
+
+Sur le client il faut utiliser les variables suivantes:
+
+	unset DOCKER_CERT_PATH
+	unset DOCKER_TLS_VERIFY
+	export DOCKER_HOST="tcp://<__docker host__ ip address>:2375"
+	export DOCKER_MACHINE_NAME="__docker host__"
+
+Une fois toutes les confugurations faites il est possible d'exécuter les commandes `docker` depuis le __docker client__.
 ## Références
 
 - Site principal docker: <https://www.docker.com/>
