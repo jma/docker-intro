@@ -544,6 +544,12 @@ Sur le client il faut utiliser les variables suivantes:
 	export DOCKER_MACHINE_NAME="__docker host__"
 
 Une fois toutes les confugurations faites il est possible d'exécuter les commandes `docker` depuis le __docker client__.
+
+Note: la documentation pour sécuriser le deamon est ici:
+<https://docs.docker.com/articles/https/>, sinon une autre approche consiste à
+passer par une registry et se logger sur la machine __docker host__ pour lancer
+les containers.
+
 ## Références
 
 - Site principal docker: <https://www.docker.com/>
