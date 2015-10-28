@@ -16,16 +16,11 @@ Note: il semble que les paquets ont disparus dans la version 8.1.
 
 ### MacOSX
 
-Comme docker a besoin d'une installation Linux, docker sous Windows ou Macosx utilise VirtualBox comme __host__ principal. C'est le rôle de `docker-machine` de gérer la machine virtuelle linux. Elle est donc créée avec cet outil.
+Comme docker a besoin d'une installation Linux, docker sous Windows ou Macosx utilise VirtualBox comme __host__ principal. C'est le rôle de `docker-machine` de gérer la machine virtuelle linux. Docker met à disposition une boite à outil pour simplifier le processus d'installation et crééer quelques raccourcis bien util
 
-#### Avec Home Brew
+Le process est présenté ici <https://docs.docker.com/installation/mac/>
 
-	brew install docker-machine docker docker-compose
-
-#### Avec un paquet officiel
-
-Il faut suivre les indications depuis le site principal <http://docs.docker.com/mac/step_one/>.
-
+et la boite à outil est là <https://www.docker.com/toolbox>
 
 ## Concepts
 
@@ -40,9 +35,11 @@ Une __image__ docker est la base d'un container. Elle est passive dans le sens q
 Il est possible de créer ses propres images en écrivant un fichier __Dockerfile__. En général une image se termine par l'exécution d'une et une seule commande, par ex. `mysqld`.
 
 ### Container
-C'est l'exécution d'une image. Il est exécuté dans l'équivalent d'un processus LXC (Linux Container). En général un et un seul processus tourne dans le container.
+C'est l'exécution d'une image. Il est exécuté dans l'équivalent d'un processus LXC (Linux Container). En général un et un seul processus tourne dans le container. Une fois la commande exécutée, le container s'arrête, ce qui peut s'avérer génant si vous souhaitez laisser la commande s'ecécuter en background. Une option permet de lancer l'execution du container en mode daemon
 
-Toutes les données sont supprimées lors de l'arrêt d'un container; les données ne sont pas persistantes.
+	docker run <image_name> -d
+
+Toutes les données sont supprimées lors de l'arrêt d'un container. Les données ne sont pas persistantes par défaut.
 
 ### Data volume
 Comme les données d'un container ne sont pas persistantes, il existe la possibilité de créer des volumes de données qui peuvent être montés dans les containers. Les données sont stockées dans un répertoire du __docker host__.
@@ -64,6 +61,8 @@ Le host est prêt pour exécuter des containers, mais il faut mettre à jours le
 	eval "$(docker-machine env dev)"
 
 Note: il est possible de le mettre dans les fichiers d'init de bash (.profile, .bashr, etc.) si on développe avec la même machine.
+
+Note pour les utilisateur Mac: la toolbox install un raccourci Terminal qui s'occupe de créer la docker-machine (si elle n'existe pas) et de la lancer (si elle ne s'execute pad déjà). Le terminal est ensuite configuré avec les variables d'environnements correctes.
 
 ### Mon premier container
 
@@ -152,7 +151,7 @@ Nous pouvons alors construire notre image que nous nommerons __myapp__.
 	
 Pour exécuter le container que nous nommerons __myapp__ également:
 
-	docker run --name myapp myapp
+	docker run -d --name myapp myapp
 
 Le serveur tourne bien dans le container on peut le vérifier avec `docker ps`. Pour le stopper `docker stop myapp`.
 
