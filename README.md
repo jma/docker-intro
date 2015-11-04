@@ -16,9 +16,9 @@ Note: il semble que les paquets ont disparus dans la version 8.1.
 
 ### MacOSX
 
-Comme docker a besoin d'une installation Linux, docker sous Windows ou Macosx utilise VirtualBox comme __host__ principal. C'est le rôle de `docker-machine` de gérer la machine virtuelle linux. Docker met à disposition une boite à outil pour simplifier le processus d'installation et crééer quelques raccourcis bien util
+Comme docker a besoin d'une installation Linux, docker sous Windows ou Macosx utilise VirtualBox comme __host__ principal. C'est le rôle de `docker-machine` de gérer la machine virtuelle linux. Docker met à disposition une boite à outil pour simplifier le processus d'installation et créer quelques raccourcis bien utiles.
 
-Le process est présenté ici <https://docs.docker.com/installation/mac/>
+Le process est présenté ici <https://docs.docker.com/installation/mac>
 
 et la boite à outil est là <https://www.docker.com/toolbox>
 
@@ -62,7 +62,7 @@ Le host est prêt pour exécuter des containers, mais il faut mettre à jours le
 
 Note: il est possible de le mettre dans les fichiers d'init de bash (.profile, .bashr, etc.) si on développe avec la même machine.
 
-Note pour les utilisateur Mac: la toolbox install un raccourci Terminal qui s'occupe de créer la docker-machine (si elle n'existe pas) et de la lancer (si elle ne s'execute pad déjà). Le terminal est ensuite configuré avec les variables d'environnements correctes.
+Note pour les utilisateur Mac: la toolbox install un raccourci Terminal qui s'occupe de créer la docker-machine (si elle n'existe pas) et de la lancer (si elle ne s'execute pas déjà). Le terminal est ensuite configuré avec les variables d'environnement correctes.
 
 ### Mon premier container
 
@@ -174,7 +174,7 @@ Ok mais comment voir le site web dans un navigateur? Simplement en récupérant 
 
 Nous avons vu comment faire une application web python dans un docker. Mais le serveur utilisé est fait uniquement pour le développement. Nous allons maintenant servir notre application avec un serveur web écrit en __python__: `gunicorn`. Le serveur sera exécuté avec un utilisateur dédié et nous allons créer un espace de stockage permanent pour les logs. Cette nouvelle image sera appelée __web__.
 
-### Etape 1: un nouveau web serveur exécuter avec un utilisateur non root
+### Etape 1: un nouveau web serveur exécuté avec un utilisateur non root
 
 Voici le nouveau fichier __web/Dockerfile__:
 
@@ -266,7 +266,7 @@ Il est à noter que les données persistent même si l'image __et__ le container
 
 Nous avons vu comment créer des containers simples et les faire interagir, mais cela demande passablement de commandes. Pour simplifier cette gestion il existe un outils: `docker-compose`.
 
-Imaginons que nous avons deux fichiers `web/Dockerfile` et `data/Dockerfile` comme définis précédemment. Un pour l'application web et un pour le volume de données. Imaginons que nous voulons un "load balancer" devant plusieurs instance de note appli web. Nous allons créer un nouveau __Dockerfile__ pour le __load balancer__ basé sur ngix. Le tout va logger dans le même répertoire.
+Imaginons que nous avons deux fichiers `web/Dockerfile` et `data/Dockerfile` comme définis précédemment. Un pour l'application web et un pour le volume de données. Imaginons que nous voulons un "load balancer" devant plusieurs instance de note appli web. Nous allons créer un nouveau __Dockerfile__ pour le __load balancer__ basé sur nginx. Le tout va logger dans le même répertoire.
 
 Voici le fichier __balancer/Dockerfile__ pour nginx:
 
@@ -388,6 +388,21 @@ et on exécute le service au complet:
 	docker-compose up
 
 Le site web est dispo et est bien balancé.
+
+
+## Simplifier, et modifier les sources à la volée
+
+Un grand nombre de commandes dans les Dockerfile ont été explicitées pour des raisons pédagogiques, mais ces fichiers peuvent être minimisés en utilisant les images appropriées.
+
+Le lecteur curieux peut aller jeter un coup d'oeil sur le projet <https://github.com/realpython/orchestrating-docker> qui propose un docker-compose.yml orchestrant
+
+* une application flask (servie par gunicorn comme ci-dessus)
+* un service nginx pour servir les fichiers statics
+* une base postgresql
+* un volume distinct pour les données postgresql (dans le même esprit que les logs ci-dessus)
+
+Le développeur curieux peut également pousser la visite sur une version adaptée de l'orchestrator qui utilise les volumes pour autoriser la modification des fichiers sources "à la volée", c'est à dire voir le résultat des modifications sans avoir besoin de redémarrer les containers: <https://github.com/ebreton/orchestrating-docker/tree/with-mounts>
+
 
 ## Docker en production (Proof of concept)
 
